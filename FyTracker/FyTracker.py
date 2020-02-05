@@ -5,6 +5,9 @@
 import csv
 import msvcrt
 import pickle
+import calendar
+import matplotlib.pyplot as plt
+from datetime import date
 import Records
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -18,6 +21,25 @@ def loadFromFile(fileName):
 	with open(filePathName, 'rb') as fp:
 		# deserialize the data and return it
 		return pickle.load(fp)
+# ------------------------------------------------------------------------------------------------------------------------
+# globals
+try:
+	# try to load the checkbook from a file
+	checkbook = loadFromFile('checkbook')
+except:
+	# if the checkbook can't be loaded in create one
+	checkbook = Records.Checkbook()
+
+try:
+	# try to load the categories from a file
+	categories = loadFromFile('categories')
+except:
+	# if the checkbook can't be loaded in create one
+	categories = []
+	
+userInput = 0
+curYear = 2019 #date.today().year
+curMonth = 12 #date.today().month
 # ------------------------------------------------------------------------------------------------------------------------
 # saving to a dat file
 def saveToFile(fileName, data):
@@ -38,10 +60,10 @@ def editCategories():
 		print("2. Add category")
 		print("3. Remove categories")
 		print("4. Back")
-		print(" ")
 
 		# get the user input
-		userInput = msvcrt.getch()
+		userInput = input("Selection: ")
+		print(" ")
 
 		# if the user hits view categories and there are no categories
 		if int(userInput) == 1 and len(categories) < 1:
@@ -58,12 +80,12 @@ def editCategories():
 
 			# print out back at the end of all the categories
 			print(str(count) + ". Back")
-			print(" ")
 
 			# checks to see if the user hits back
 			while True:
 				# get the input
-				userInput = msvcrt.getch()
+				userInput = input("Selection: ")
+				print(" ")
 
 				if int(userInput) == count:
 					break
@@ -90,10 +112,10 @@ def editCategories():
 			print(str(count) + ". Remove all")
 			print(str(count + 1) + ". Back")
 			print("Choose a category to remove")
-			print(" ")
 
 			# get the user input
-			userInput = msvcrt.getch()
+			userInput = input("Selection: ")
+			print(" ")
 
 			# if the user hits remove all
 			if int(userInput) == count:
@@ -140,10 +162,10 @@ def categorize(row):
 
 	# show an option to add a new category
 	print(str(count) + ". Add new")
-	print(" ")
 
 	# get the user input
-	userInput = msvcrt.getch()
+	userInput = input("Selection: ")
+	print(" ")
 	
 	# if the user hits a category
 	if int(userInput) <= len(categories):
@@ -158,9 +180,9 @@ def categorize(row):
 		# add the new category to the list
 		categories.append(new.lower())
 
-		# save the categories
+		# save the categories77
 		saveToFile("categories", categories)
-		return new
+		return new.lower()
 # ------------------------------------------------------------------------------------------------------------------------
 # input data
 def inputData():
@@ -178,27 +200,23 @@ def inputData():
 				# loop through all the lines of the .csv
 				for row in readCSV:
 					# get the current year
-					curYear = row[2].split('/')[2]
+					rowYear = row[2].split('/')[2]
 					# get the current month
-					curMonth = row[2].split('/')[0]
+					rowMonth = row[2].split('/')[0]
 
 					# check to see if the year is already in the checkbook
-					if not any(year for year in checkbook.years if year.year == curYear):
-						checkbook.addYear(curYear)
+					if not any(year for year in checkbook.years if year.year == rowYear):
+						checkbook.addYear(rowYear)
 
 					# find the index of the current year
-					for count, year in enumerate(checkbook.years):
-						if year.year == curYear:
-							yearIndex = count
+					yearIndex = getYearIndex(rowYear)
 
 					# check to see if the year is already in that specific year
-					if not any(month for month in checkbook.years[yearIndex].months if month.month == curMonth):
-						checkbook.years[yearIndex].addMonth(curMonth)
+					if not any(month for month in checkbook.years[yearIndex].months if month.month == rowMonth):
+						checkbook.years[yearIndex].addMonth(rowMonth)
 
 					# find the index of the month
-					for count, month in enumerate(checkbook.years[yearIndex].months):
-						if month.month == curMonth:
-							monthIndex = count
+					monthIndex = getMonthIndex(rowYear, rowMonth)
 
 					# check to see if the transaction is already in that month
 					if any(trans for trans in checkbook.years[yearIndex].months[monthIndex].transactions if trans.date == row[2].split('/')[1] and trans.company == row[4].strip() and trans.amount == float(row[6])):
@@ -229,55 +247,170 @@ def inputData():
 			print("Not a valid path")
 			continue
 # ------------------------------------------------------------------------------------------------------------------------
-# main
-try:
-	# try to load the checkbook from a file
-	checkbook = loadFromFile('checkbook')
-except:
-	# if the checkbook can't be loaded in create one
-	checkbook = Records.Checkbook()
+def getYearIndex(yearInput):
+	# find the index of the current year
+	for count, year in enumerate(checkbook.years):
+		if year.year == str(yearInput):
+			return count
+# ------------------------------------------------------------------------------------------------------------------------
+def getMonthIndex(yearInput, monthInput):
+	# find the index of the month
+	yearIndex = getYearIndex(yearInput)
+	for count, month in enumerate(checkbook.years[yearIndex].months):
+		if month.month == str(monthInput):
+			return count
+# ------------------------------------------------------------------------------------------------------------------------
+def displayMonth():
+	# find the index of the current year
+	try:
+		yearIndex = getYearIndex(curYear)
+		monthIndex = getMonthIndex(curYear, curMonth)
+	except:
+		print("No data for that month")
+		return
 
-try:
-	# try to load the categories from a file
-	categories = loadFromFile('categories')
-except:
-	# if the checkbook can't be loaded in create one
-	categories = []
+	graphIncomeAmounts = [0] * len(categories)
+	graphExpenseAmounts = [0] * len(categories)
+
+	for count, transaction in enumerate(checkbook.years[yearIndex].months[monthIndex].transactions):
+		index = categories.index(transaction.category)
+		if transaction.category == "paid for":
+			continue
+		elif transaction.amount < 0:
+			graphExpenseAmounts[index] += abs(transaction.amount)
+		else:
+			graphIncomeAmounts[index] += transaction.amount
 	
-userInput = 0
+	plt.rcParams['toolbar'] = 'None'
+	fig, (ax1, ax2) = plt.subplots(1, 2)
+	ax1.set_title("Expenses")
+	ax2.set_title("Incomes")
+	ax1.pie(graphExpenseAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphExpenseAmounts) / 100) if p > 0 else '')
+	ax2.pie(graphIncomeAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphIncomeAmounts) / 100) if p > 0 else '')
+	plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
+def displayYear():
+	# find the index of the current year
+	try:
+		yearIndex = getYearIndex(curYear)
+		monthIndex = getMonthIndex(curYear, curMonth)
+	except:
+		print("No data for that month")
+		return
 
-while userInput != 5:
-	# display the menu options
-	print("1. Display a month")
-	print("2. Display a year")
-	print("3. Input new data")
-	print("4. Edit categories")
-	print("5. Quit")
-	print(" ")
+	graphIncomeAmounts = [0] * len(categories)
+	graphExpenseAmounts = [0] * len(categories)
+
+	for year in checkbook.years:
+		for month in checkbook.years[yearIndex].months:
+			for transaction in checkbook.years[yearIndex].months[monthIndex].transactions:
+				index = categories.index(transaction.category)
+				if transaction.category == "paid for":
+					continue
+				elif transaction.amount < 0:
+					graphExpenseAmounts[index] += abs(transaction.amount)
+				else:
+					graphIncomeAmounts[index] += transaction.amount
+
+	plt.rcParams['toolbar'] = 'None'
+	fig, (ax1, ax2) = plt.subplots(1, 2)
+	ax1.set_title("Expenses")
+	ax2.set_title("Incomes")
+	ax1.pie(graphExpenseAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphExpenseAmounts) / 100) if p > 0 else '')
+	ax2.pie(graphIncomeAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphIncomeAmounts) / 100) if p > 0 else '')
+	plt.show()
+# ------------------------------------------------------------------------------------------------------------------------
+# edits the current selected date
+def editDate():
+	global curYear
+	global curMonth
+
+	# display instructions
+	print("Select a new year")
+
+	count = 1
+	# loop through all the years and print them out
+	for year in checkbook.years:
+		print(str(count) + ". " + year.year)
+		count += 1
+
+	# print out back at the end of all the years
+	print(str(count) + ". Back")
 
 	# get the user input
-	userInput = msvcrt.getch()
+	userInput = input("Selection: ")
+	print(" ")
 
-	# display the month graph
-	if int(userInput) == 1:
-		pass
-	# display the year graph
-	elif int(userInput) == 2:
-		pass
+	if int(userInput) != count:
+		# assign the new current year
+		curYear = checkbook.years[int(userInput) - 1].year
+	else:
+		return
+		
+	# find the index of the current year
+	yearIndex = getYearIndex(curYear)
+
+	# display instructions
+	print("Select a new month")
+
+	count = 1
+	# loop through all the months and print them out
+	for month in checkbook.years[yearIndex].months:
+		print(str(count) + ". " + month.month)
+		count += 1
+
+	# print out back at the end of all the months
+	print(str(count) + ". Back")
+
+	# get the user input
+	userInput = input("Selection: ")
+	print(" ")
+
+	if int(userInput) != count:
+		# assign the new current month
+		curMonth = checkbook.years[yearIndex].months[int(userInput) - 1].month
+# ------------------------------------------------------------------------------------------------------------------------
+# main
+while userInput != 5:
+	# show the current year and month
+	print("Current date: " + calendar.month_name[int(curMonth)] + " " + str(curYear))
+
+	# display the menu options
+	print("1. Input new data")
+	print("2. Display current month graph")
+	print("3. Display current year graph")
+	print("4. Edit categories")
+	print("5. Edit current date")
+	print("6. Quit")
+
+	# get the user input
+	userInput = input("Selection: ")
+	print(" ")
+
 	# input new data
-	elif int(userInput) == 3:
+	if int(userInput) == 1:
 		# input the data
 		inputData()
 
 		# save the data to a file
 		saveToFile("checkbook", checkbook)
+	# display the month graph
+	elif int(userInput) == 2:
+		displayMonth()
+	# display the year graph
+	elif int(userInput) == 3:
+		displayYear()
 	# edit category option
 	elif int(userInput) == 4:
 		# edit the categories
 		editCategories()
 		pass
-	# exit
+	# edit the current month and year
 	elif int(userInput) == 5:
+		# edit the date
+		editDate()
+	# exit
+	elif int(userInput) == 6:
 		break
 	# wrong input
 	else:
