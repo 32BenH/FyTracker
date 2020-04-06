@@ -38,8 +38,8 @@ except:
 	categories = []
 	
 userInput = 0
-curYear = 2019 #date.today().year
-curMonth = 12 #date.today().month
+curYear = date.today().year
+curMonth = date.today().month
 # ------------------------------------------------------------------------------------------------------------------------
 # saving to a dat file
 def saveToFile(fileName, data):
@@ -261,7 +261,7 @@ def getMonthIndex(yearInput, monthInput):
 			return count
 # ------------------------------------------------------------------------------------------------------------------------
 def displayMonth():
-	# find the index of the current year
+	# find the index of the current year from 
 	try:
 		yearIndex = getYearIndex(curYear)
 		monthIndex = getMonthIndex(curYear, curMonth)
@@ -269,22 +269,31 @@ def displayMonth():
 		print("No data for that month")
 		return
 
+	# set the lengths for the amount lists
 	graphIncomeAmounts = [0] * len(categories)
 	graphExpenseAmounts = [0] * len(categories)
 
+	# iterate through the all the checkbook transactions for the month
 	for count, transaction in enumerate(checkbook.years[yearIndex].months[monthIndex].transactions):
 		index = categories.index(transaction.category)
+		# if the transaction category is paid for don't display it
 		if transaction.category == "paid for":
 			continue
+		# less than 0 is an expense
 		elif transaction.amount < 0:
 			graphExpenseAmounts[index] += abs(transaction.amount)
+		# more than 0 is an income
 		else:
 			graphIncomeAmounts[index] += transaction.amount
 	
+	# get rid of the toolbar
 	plt.rcParams['toolbar'] = 'None'
+	# create the figures
 	fig, (ax1, ax2) = plt.subplots(1, 2)
+	# set the titles
 	ax1.set_title("Expenses")
 	ax2.set_title("Incomes")
+	# create the pie charts
 	ax1.pie(graphExpenseAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphExpenseAmounts) / 100) if p > 0 else '')
 	ax2.pie(graphIncomeAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphIncomeAmounts) / 100) if p > 0 else '')
 	plt.show()
@@ -298,24 +307,33 @@ def displayYear():
 		print("No data for that month")
 		return
 
+	# set the lengths for the amount lists
 	graphIncomeAmounts = [0] * len(categories)
 	graphExpenseAmounts = [0] * len(categories)
 
+	# iterate through the all the checkbook transactions for the years
 	for year in checkbook.years:
 		for month in checkbook.years[yearIndex].months:
 			for transaction in checkbook.years[yearIndex].months[monthIndex].transactions:
 				index = categories.index(transaction.category)
+				# if the transaction category is paid for don't display it
 				if transaction.category == "paid for":
 					continue
+				# less than 0 is an expense
 				elif transaction.amount < 0:
 					graphExpenseAmounts[index] += abs(transaction.amount)
+				# more than 0 is an income
 				else:
 					graphIncomeAmounts[index] += transaction.amount
 
+	# get rid of the toolbar
 	plt.rcParams['toolbar'] = 'None'
+	# create the figures
 	fig, (ax1, ax2) = plt.subplots(1, 2)
+	# set the titles
 	ax1.set_title("Expenses")
 	ax2.set_title("Incomes")
+	# create the pie charts
 	ax1.pie(graphExpenseAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphExpenseAmounts) / 100) if p > 0 else '')
 	ax2.pie(graphIncomeAmounts, labels=categories, autopct=lambda p: '{:.0f}'.format(p * sum(graphIncomeAmounts) / 100) if p > 0 else '')
 	plt.show()
@@ -387,31 +405,39 @@ while userInput != 5:
 	userInput = input("Selection: ")
 	print(" ")
 
-	# input new data
-	if int(userInput) == 1:
-		# input the data
-		inputData()
+	if userInput.isnumeric():
+		# input new data
+		if int(userInput) == 1:
+			# input the data
+			inputData()
 
-		# save the data to a file
-		saveToFile("checkbook", checkbook)
-	# display the month graph
-	elif int(userInput) == 2:
-		displayMonth()
-	# display the year graph
-	elif int(userInput) == 3:
-		displayYear()
-	# edit category option
-	elif int(userInput) == 4:
-		# edit the categories
-		editCategories()
-		pass
-	# edit the current month and year
-	elif int(userInput) == 5:
-		# edit the date
-		editDate()
-	# exit
-	elif int(userInput) == 6:
-		break
+			# save the data to a file
+			saveToFile("checkbook", checkbook)
+		# display the month graph
+		elif int(userInput) == 2:
+			displayMonth()
+		# display the year graph
+		elif int(userInput) == 3:
+			displayYear()
+		# edit category option
+		elif int(userInput) == 4:
+			# edit the categories
+			editCategories()
+			pass
+		# edit the current month and year
+		elif int(userInput) == 5:
+			# edit the date
+			editDate()
+		# exit
+		elif int(userInput) == 6:
+			break
+		# wrong input
+		else:
+			print("Wrong input")
+			print(" ")
 	# wrong input
 	else:
 		print("Wrong input")
+		print(" ")
+
+	

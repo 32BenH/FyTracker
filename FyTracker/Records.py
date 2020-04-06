@@ -1,3 +1,4 @@
+# Class for transactions
 class Transaction:
 	def __init__(self, date, company, amount, category):
 		self.date = date
@@ -5,6 +6,7 @@ class Transaction:
 		self.amount = amount
 		self.category = category
 
+# class for months
 class Month:
 	def __init__(self, month):
 		self.month = month
@@ -13,6 +15,7 @@ class Month:
 	def addTransaction(self, date, company, amount, category):
 		self.transactions.append(Transaction(date, company, amount, category))
 
+# class for years
 class Year:
 	def __init__(self, year):
 		self.year = year
@@ -21,6 +24,7 @@ class Year:
 	def addMonth(self, month):
 		self.months.append(Month(month))
 
+# class for checkbooks
 class Checkbook:
 	def __init__(self):
 		self.years = []
